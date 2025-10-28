@@ -9,7 +9,7 @@ pipeline {
     EC2_USER = "ec2-user"
     EC2_IP = "3.6.175.112"
     // Replace with your actual ngrok public URL that exposes SonarQube (include https://)
-    SONAR_HOST_URL = "https://e275386b0b41.ngrok-free.app"
+    SONAR_HOST_URL = "https://localhost:9000"
   }
   stages {
     stage('Checkout') {
