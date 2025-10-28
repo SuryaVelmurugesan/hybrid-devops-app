@@ -49,17 +49,16 @@ pipeline {
     }
 
     stage('Deploy to EC2') {
-      steps {
-        sshagent (credentials: ['ec2-ssh']) {
-          sh '''
-            echo "Deploying on EC2 instance..."
-            scp -o StrictHostKeyChecking=no deploy/deploy.sh ec2-user@3.6.175.112:/home/ubuntu/deploy.sh
-            ssh -o StrictHostKeyChecking=no ec2-user@3.6.175.112 "bash /home/ubuntu/deploy.sh ${DOCKER_IMAGE} ${IMAGE_TAG}"
-          '''
-        }
-      }
+  steps {
+    sshagent(['ec2-ssh']) {
+      sh '''
+        echo "Deploying on EC2 instance..."
+        scp -o StrictHostKeyChecking=no deploy/deploy.sh ec2-user@3.6.175.112:/home/ec2-user/deploy.sh
+        ssh -o StrictHostKeyChecking=no ec2-user@3.6.175.112 "bash /home/ec2-user/deploy.sh"
+      '''
     }
   }
+}
 
   post {
     always {
