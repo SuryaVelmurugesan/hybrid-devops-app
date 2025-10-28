@@ -26,20 +26,19 @@ pipeline {
     stage('SonarQube Analysis') {
       steps {
         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-      // if you configured Sonar in Jenkins as 'MySonar' you can use withSonarQubeEnv, otherwise set SONAR_HOST_URL
       sh '''
         export SONAR_HOST_URL="http://127.0.0.1:9000"
-        export SONAR_TOKEN="${SONAR_TOKEN}"
-        # run scanner installed on Jenkins host
-        sonar-scanner \
-          -Dsonar.host.url=$SONAR_HOST_URL \
-          -Dsonar.login=$SONAR_TOKEN \
+        echo "Running sonar-scanner (docker) against $SONAR_HOST_URL"
+        docker run --rm --network host -v "$(pwd)":/usr/src sonarsource/sonar-scanner-cli \
+          -Dsonar.host.url="$SONAR_HOST_URL" \
+          -Dsonar.login="$SONAR_TOKEN" \
           -Dsonar.projectKey=devops-capstone-app \
-          -Dsonar.sources=app
+          -Dsonar.sources=/usr/src/app
       '''
         }
       }
     }
+
 
     stage('Build Docker Image') {
       steps { sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ." }
