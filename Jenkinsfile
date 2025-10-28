@@ -53,8 +53,8 @@ pipeline {
         sshagent (credentials: ['ec2-ssh']) {
           sh '''
             echo "Deploying on EC2 instance..."
-            scp -o StrictHostKeyChecking=no deploy/deploy.sh ubuntu@3.6.175.112:/home/ubuntu/deploy.sh
-            ssh -o StrictHostKeyChecking=no ubuntu@3.6.175.112 "bash /home/ubuntu/deploy.sh ${DOCKER_IMAGE} ${IMAGE_TAG}"
+            scp -o StrictHostKeyChecking=no deploy/deploy.sh ec2-user@3.6.175.112:/home/ubuntu/deploy.sh
+            ssh -o StrictHostKeyChecking=no ec2-user@3.6.175.112 "bash /home/ubuntu/deploy.sh ${DOCKER_IMAGE} ${IMAGE_TAG}"
           '''
         }
       }
