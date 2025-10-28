@@ -1,17 +1,19 @@
 pipeline {
   agent any
   environment {
-    DOCKERHUB_CRED = credentials('dockerhub')   // username/password
-    SONAR_TOKEN = credentials('sonar-token')    // secret text
-    EC2_SSH = 'ec2-ssh'                         // SSH credential id
+    DOCKERHUB_CRED = credentials('dockerhub')
+    SONAR_TOKEN = credentials('sonar-token')
+    EC2_SSH = 'ec2-ssh'
     DOCKER_IMAGE = "surya485/devops-capstone-app"
     IMAGE_TAG = "${env.BUILD_ID}"
+    EC2_USER = "ec2-user"
+    EC2_IP = "3.6.175.112"
+    // Replace with your actual ngrok public URL that exposes SonarQube (include https://)
+    SONAR_HOST_URL = " https://e275386b0b41.ngrok-free.app"
   }
   stages {
     stage('Checkout') {
-      steps {
-        checkout scm
-      }
+      steps { checkout scm }
     }
     stage('Install & Test') {
       steps {
@@ -23,23 +25,19 @@ pipeline {
     }
     stage('SonarQube Analysis') {
       steps {
-        // Use sonarsource/sonar-scanner-cli for scanning and pass token as env
         sh """
           docker run --rm \
-            -e SONAR_HOST_URL=http://localhost:9000 \
-            -e SONAR_TOKEN=${SONAR_TOKEN} \
             -v \$(pwd):/usr/src \
             sonarsource/sonar-scanner-cli \
+            -Dsonar.host.url=${SONAR_HOST_URL} \
             -Dsonar.login=${SONAR_TOKEN} \
             -Dsonar.projectKey=devops-capstone-app \
-            -Dsonar.sources=./app
+            -Dsonar.sources=/usr/src/app
         """
       }
     }
     stage('Build Docker Image') {
-      steps {
-        sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
-      }
+      steps { sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ." }
     }
     stage('Push to DockerHub') {
       steps {
@@ -54,20 +52,16 @@ pipeline {
     }
     stage('Deploy to EC2') {
       steps {
-        // Copy deploy script and run it on remote host via SSH
         sshagent (credentials: ['ec2-ssh']) {
           sh """
-            scp -o StrictHostKeyChecking=no deploy/deploy.sh ubuntu@3.6.175.112:/home/ubuntu/deploy.sh
-            ssh -o StrictHostKeyChecking=no ubuntu@<EC2_PUBLIC_IP> 'bash /home/ubuntu/deploy.sh ${DOCKER_IMAGE} ${IMAGE_TAG}'
+            scp -o StrictHostKeyChecking=no deploy/deploy.sh ${EC2_USER}@${EC2_IP}:/home/${EC2_USER}/deploy.sh
+            ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} 'chmod +x /home/${EC2_USER}/deploy.sh && bash /home/${EC2_USER}/deploy.sh ${DOCKER_IMAGE} ${IMAGE_TAG}'
           """
         }
       }
     }
   }
-
   post {
-    always {
-      archiveArtifacts artifacts: 'app/**', allowEmptyArchive: true
-    }
+    always { archiveArtifacts artifacts: 'app/**', allowEmptyArchive: true }
   }
 }
