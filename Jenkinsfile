@@ -9,7 +9,7 @@ pipeline {
     EC2_USER = "ec2-user"
     EC2_IP = "3.6.175.112"
     // Replace with your actual ngrok public URL that exposes SonarQube (include https://)
-    SONAR_HOST_URL = " https://e275386b0b41.ngrok-free.app"
+    SONAR_HOST_URL = "https://e275386b0b41.ngrok-free.app"
   }
   stages {
     stage('Checkout') {
@@ -25,17 +25,20 @@ pipeline {
     }
     stage('SonarQube Analysis') {
       steps {
-        sh """
-          docker run --rm \
-            -v \$(pwd):/usr/src \
-            sonarsource/sonar-scanner-cli \
-            -Dsonar.host.url=${SONAR_HOST_URL} \
-            -Dsonar.login=${SONAR_TOKEN} \
-            -Dsonar.projectKey=devops-capstone-app \
-            -Dsonar.sources=/usr/src/app
-        """
-      }
+    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+      // SONAR_HOST_URL should be set in the environment block (no trailing spaces)
+      sh """
+        echo "Running Sonar scanner against ${SONAR_HOST_URL}"
+        docker run --rm -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli \
+          -Dsonar.host.url=${SONAR_HOST_URL} \
+          -Dsonar.login=${SONAR_TOKEN} \
+          -Dsonar.projectKey=devops-capstone-app \
+          -Dsonar.sources=/usr/src/app
+      """
+            }
+        }
     }
+
     stage('Build Docker Image') {
       steps { sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ." }
     }
